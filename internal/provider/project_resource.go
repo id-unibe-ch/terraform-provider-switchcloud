@@ -47,7 +47,7 @@ type ProjectResourceModel struct {
 	UpdatedAt      types.String `tfsdk:"updated_at"`
 }
 
-// Project represents the API response structure
+// Project represents the API response structure.
 type Project struct {
 	Id             string `json:"id"`
 	Name           string `json:"name"`
@@ -59,13 +59,13 @@ type Project struct {
 	UpdatedAt      string `json:"updated_at"`
 }
 
-// ProjectCreateRequest represents the request body for creating a project
+// ProjectCreateRequest represents the request body for creating a project.
 type ProjectCreateRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 }
 
-// ProjectUpdateRequest represents the request body for updating a project
+// ProjectUpdateRequest represents the request body for updating a project.
 type ProjectUpdateRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`

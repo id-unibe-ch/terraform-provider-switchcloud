@@ -90,7 +90,7 @@ func (p *SwitchcloudProvider) Configure(ctx context.Context, req provider.Config
 	resp.ResourceData = providerData
 }
 
-// authenticatedTransport is a custom HTTP transport that adds authentication headers
+// authenticatedTransport is a custom HTTP transport that adds authentication headers.
 type authenticatedTransport struct {
 	apiKey    string
 	transport http.RoundTripper

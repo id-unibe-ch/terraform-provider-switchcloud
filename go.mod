@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/id-unibe-ch/terraform-provider-switchcloud
 
 go 1.23.7
 
