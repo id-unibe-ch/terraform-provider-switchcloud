@@ -1,0 +1,1 @@
+terraform import switchcloud_project.test "id-123"
