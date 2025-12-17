@@ -54,11 +54,11 @@ func (d *ProjectDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Project identifier",
-				Computed:            true,
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Project name",
-				Required:            true,
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Project description",
@@ -136,7 +136,7 @@ func (d *ProjectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	// Create HTTP request
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", strings.TrimSuffix(d.endpoint, "/")+"/api/v1/projects", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", strings.TrimSuffix(d.endpoint, "/")+"/api/v1/projects/"+data.Id.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create request, got error: %s", err))
 		return
@@ -166,30 +166,16 @@ func (d *ProjectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	// Parse response
-	var projects []Project
-	if err := json.Unmarshal(body, &projects); err != nil {
+	var project Project
+	if err := json.Unmarshal(body, &project); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to parse response, got error: %s", err))
-		return
-	}
-
-	// Find project by name
-	var project *Project
-	for _, p := range projects {
-		if p.Name == data.Name.ValueString() {
-			project = &p
-			break
-		}
-	}
-
-	if project == nil {
-		resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No project found with name: %s", data.Name.ValueString()))
 		return
 	}
 
 	// Update model with response data
 	data.Id = types.StringValue(project.Id)
 	data.Name = types.StringValue(project.Name)
-	data.Description = types.StringValue(project.Description)
+	data.Description = types.StringPointerValue(project.Description)
 	data.OrganisationId = types.StringValue(project.OrganisationId)
 	data.Archived = types.BoolValue(project.Archived)
 	data.ArchivedAt = types.StringValue(project.ArchivedAt)

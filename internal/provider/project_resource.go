@@ -49,14 +49,14 @@ type ProjectResourceModel struct {
 
 // Project represents the API response structure.
 type Project struct {
-	Id             string `json:"id"`
-	Name           string `json:"name"`
-	Description    string `json:"description,omitempty"`
-	OrganisationId string `json:"organisation_id"`
-	Archived       bool   `json:"archived"`
-	ArchivedAt     string `json:"archived_at,omitempty"`
-	CreatedAt      string `json:"created_at"`
-	UpdatedAt      string `json:"updated_at"`
+	Id             string  `json:"id"`
+	Name           string  `json:"name"`
+	Description    *string `json:"description,omitempty"`
+	OrganisationId string  `json:"organisation_id"`
+	Archived       bool    `json:"archived"`
+	ArchivedAt     string  `json:"archived_at,omitempty"`
+	CreatedAt      string  `json:"created_at"`
+	UpdatedAt      string  `json:"updated_at"`
 }
 
 // ProjectCreateRequest represents the request body for creating a project.
@@ -230,7 +230,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	// Update model with response data
 	data.Id = types.StringValue(project.Id)
 	data.Name = types.StringValue(project.Name)
-	data.Description = types.StringValue(project.Description)
+	data.Description = types.StringPointerValue(project.Description)
 	data.OrganisationId = types.StringValue(project.OrganisationId)
 	data.Archived = types.BoolValue(project.Archived)
 	data.ArchivedAt = types.StringValue(project.ArchivedAt)
@@ -300,7 +300,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Update model with response data
 	data.Id = types.StringValue(project.Id)
 	data.Name = types.StringValue(project.Name)
-	data.Description = types.StringValue(project.Description)
+	data.Description = types.StringPointerValue(project.Description)
 	data.OrganisationId = types.StringValue(project.OrganisationId)
 	data.Archived = types.BoolValue(project.Archived)
 	data.ArchivedAt = types.StringValue(project.ArchivedAt)
@@ -316,7 +316,9 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError("API Error", "Unable to delete project, method is not implemented on server")
+	resp.Diagnostics.AddWarning("API Error", "Unable to delete project, method is not implemented on server")
+
+	tflog.Trace(ctx, "deleted a project resource")
 }
 
 func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

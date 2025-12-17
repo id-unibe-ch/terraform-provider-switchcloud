@@ -24,7 +24,12 @@ func TestAccProjectDataSource(t *testing.T) {
 					statecheck.ExpectKnownValue(
 						"data.switchcloud_project.test",
 						tfjsonpath.New("id"),
-						knownvalue.StringExact("project-123456"),
+						knownvalue.StringExact("0faaecfb-d154-4f8f-bdc8-fccd630ddb39"),
+					),
+					statecheck.ExpectKnownValue(
+						"data.switchcloud_project.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("test1"),
 					),
 				},
 			},
@@ -34,6 +39,6 @@ func TestAccProjectDataSource(t *testing.T) {
 
 const testAccProjectDataSourceConfig = `
 data "switchcloud_project" "test" {
-  id = "project-123456"
+  id = "0faaecfb-d154-4f8f-bdc8-fccd630ddb39"
 }
 `

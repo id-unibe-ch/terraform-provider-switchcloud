@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -67,8 +68,16 @@ func (p *SwitchcloudProvider) Configure(ctx context.Context, req provider.Config
 		endpoint = data.Endpoint.ValueString()
 	}
 
+	if os.Getenv("SWITCHCLOUD_ENDPOINT") != "" {
+		endpoint = os.Getenv("SWITCHCLOUD_ENDPOINT")
+	}
+
 	// Create HTTP client with authentication if API key is provided
 	client := http.DefaultClient
+
+	if os.Getenv("SWITCHCLOUD_API_KEY") != "" {
+		data.ApiKey = types.StringValue(os.Getenv("SWITCHCLOUD_API_KEY"))
+	}
 	if !data.ApiKey.IsNull() {
 		// You can customize the HTTP client here to add authentication headers
 		// For example, you might create a custom RoundTripper
