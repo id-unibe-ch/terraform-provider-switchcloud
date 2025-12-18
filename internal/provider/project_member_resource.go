@@ -91,6 +91,7 @@ func (r *ProjectMemberResource) Schema(ctx context.Context, req resource.SchemaR
 			"user_id": schema.StringAttribute{
 				MarkdownDescription: "User ID of the project member",
 				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -98,6 +99,7 @@ func (r *ProjectMemberResource) Schema(ctx context.Context, req resource.SchemaR
 			"email": schema.StringAttribute{
 				MarkdownDescription: "Email of the project member",
 				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -185,7 +187,7 @@ func (r *ProjectMemberResource) Create(ctx context.Context, req resource.CreateR
 
 	// Create API request body
 	createRequest := ProjectMemberCreateRequest{}
-	if data.UserId.IsNull() {
+	if data.UserId.IsUnknown() {
 		createRequest.EMail = data.EMail.ValueString()
 	} else {
 		createRequest.UserId = data.UserId.ValueString()
