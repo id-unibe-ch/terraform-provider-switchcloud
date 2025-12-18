@@ -24,6 +24,13 @@ type Project struct {
 	UpdatedAt      string  `json:"updated_at"`
 }
 
+type ProjectMember struct {
+	Id        string `json:"id"`
+	ProjectId string `json:"project_id"`
+	UserId    string `json:"user_id"`
+	Role      string `json:"role"`
+}
+
 var projects map[string]Project = make(map[string]Project)
 
 func handlePostProject(w http.ResponseWriter, r *http.Request) {

@@ -23,7 +23,7 @@ data "switchcloud_project" "example" {
 
 ### Required
 
-- `name` (String) Project name
+- `id` (String) Project identifier
 
 ### Read-Only
 
@@ -31,6 +31,6 @@ data "switchcloud_project" "example" {
 - `archived_at` (String) When the project was archived
 - `created_at` (String) When the project was created
 - `description` (String) Project description
-- `id` (String) Project identifier
+- `name` (String) Project name
 - `organisation_id` (String) Organisation ID that owns this project
 - `updated_at` (String) When the project was last updated
