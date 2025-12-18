@@ -3,13 +3,30 @@
 
 package provider
 
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
 // Placeholder integration test
 // Resource cant be deleted by api call so cant be fully tested
 
-// func TestAccProjectMemberResource(t *testing.T) {
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { testAccPreCheck(t) },
-// 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-// 		Steps:                    []resource.TestStep{},
-// 	})
-// }
+func TestAccProjectMemberResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps:                    []resource.TestStep{},
+	})
+}
+
+const testAccProjectMemberResourceConfig = `
+resource "switchcloud_project" "test" {
+  name = "Test Project"
+}
+
+resource "switchcloud_project_member" "test" {
+  project_id = switchcloud_project.test.id
+  user_id    = "user-12345"
+}
+`

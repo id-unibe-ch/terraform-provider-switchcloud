@@ -114,6 +114,7 @@ func (t *authenticatedTransport) RoundTrip(req *http.Request) (*http.Response, e
 func (p *SwitchcloudProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewProjectResource,
+		NewProjectMemberResource,
 	}
 }
 
