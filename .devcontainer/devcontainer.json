@@ -9,7 +9,9 @@
 		"ghcr.io/devcontainers/features/go": {},
 		"ghcr.io/devcontainers/features/github-cli": {},
 		"ghcr.io/devcontainers/features/terraform": {},
-		"ghcr.io/devcontainers/features/docker-in-docker": {}
+		"ghcr.io/devcontainers/features/docker-in-docker": {
+			"moby": false
+		}
 	},
 	"customizations": {
 		"vscode": {
