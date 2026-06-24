@@ -316,9 +316,47 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("API Error", "Unable to delete project, method is not implemented on server")
+	var data ProjectResourceModel
 
-	tflog.Trace(ctx, "deleted a project resource")
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", strings.TrimSuffix(r.endpoint, "/")+"/api/v1/projects/"+data.Id.ValueString()+"/archive", nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create archive request, got error: %s", err))
+		return
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+
+	// Make API call
+	httpResp, err := r.client.Do(httpReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to archive project, got error: %s", err))
+		return
+	}
+	defer httpResp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read response body, got error: %s", err))
+		return
+	}
+
+	// Check response status
+	if httpResp.StatusCode != http.StatusOK {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("API returned status %d: %s", httpResp.StatusCode, string(body)))
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
