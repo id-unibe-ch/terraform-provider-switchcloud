@@ -12,9 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-// Placeholder integration test
-// Resource cant be deleted by api call so cant be fully tested
-
 func TestAccProjectResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
