@@ -1,6 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
+// Command tests is a standalone HTTP server that simulates the SwitchCloud API.
+// It is intended for **manual testing** and local development only.
+//
+// Automated tests (make testacc) use the in-process mock server in
+// internal/provider/testserver instead — no external server is required.
+//
+// Usage:
+//
+//	cd tests && go run main.go          # starts on :3000
+//	export SWITCHCLOUD_ENDPOINT=http://localhost:3000
+//	TF_ACC=1 go test -v ./internal/provider/...
 package main
 
 import (
