@@ -1,6 +1,6 @@
 module github.com/id-unibe-ch/terraform-provider-switchcloud
 
-go 1.24.0
+go 1.25.8
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
