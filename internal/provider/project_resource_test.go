@@ -4,18 +4,24 @@
 package provider
 
 import (
+	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+	"github.com/id-unibe-ch/terraform-provider-switchcloud/internal/provider/testserver"
 )
 
 func TestAccProjectResource(t *testing.T) {
+	srv := testserver.New()
+	defer srv.Close()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactoriesWithServer(t, srv),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccProjectResourceConfig,
@@ -54,6 +60,62 @@ func TestAccProjectResource(t *testing.T) {
 						"switchcloud_project.test",
 						tfjsonpath.New("description"),
 						knownvalue.StringExact("This is a test project description."),
+					),
+				},
+			},
+		},
+	})
+}
+
+func TestAccProjectResource_CreateServerError(t *testing.T) {
+	srv := testserver.New()
+	defer srv.Close()
+	srv.Override("POST", "/api/v1/projects",
+		testserver.RespondWith(http.StatusInternalServerError, `{"error":"internal server error"}`))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactoriesWithServer(t, srv),
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccProjectResourceConfig,
+				ExpectError: regexp.MustCompile("API returned status 500"),
+			},
+		},
+	})
+}
+
+func TestAccProjectResource_ReadNotFound(t *testing.T) {
+	srv := testserver.New()
+	defer srv.Close()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactoriesWithServer(t, srv),
+		Steps: []resource.TestStep{
+			// Create the project normally.
+			{
+				Config: testAccProjectResourceConfig,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"switchcloud_project.test",
+						tfjsonpath.New("id"),
+						knownvalue.NotNull(),
+					),
+				},
+			},
+			// Simulate the project disappearing on the server side;
+			// Terraform should detect the drift and recreate the resource.
+			{
+				PreConfig: func() {
+					srv.Reset()
+				},
+				Config: testAccProjectResourceConfig,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"switchcloud_project.test",
+						tfjsonpath.New("id"),
+						knownvalue.NotNull(),
 					),
 				},
 			},
