@@ -29,8 +29,9 @@ data "switchcloud_project" "example" {
 
 - `archived` (Boolean) Whether the project is archived
 - `archived_at` (String) When the project was archived
+- `billing_reference` (String) Customer billing reference for the project
 - `created_at` (String) When the project was created
 - `description` (String) Project description
 - `name` (String) Project name
-- `organisation_id` (String) Organisation ID that owns this project
+- `tenant_id` (String) Tenant ID that owns this project
 - `updated_at` (String) When the project was last updated

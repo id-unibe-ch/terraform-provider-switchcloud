@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/id-unibe-ch/terraform-provider-switchcloud/internal/provider/testserver"
@@ -45,6 +46,11 @@ func TestAccProjectResource(t *testing.T) {
 			},
 			{
 				Config: testAccProjectResourceUpdateConfig,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("switchcloud_project.test", plancheck.ResourceActionUpdate),
+					},
+				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"switchcloud_project.test",
@@ -60,6 +66,11 @@ func TestAccProjectResource(t *testing.T) {
 						"switchcloud_project.test",
 						tfjsonpath.New("description"),
 						knownvalue.StringExact("This is a test project description."),
+					),
+					statecheck.ExpectKnownValue(
+						"switchcloud_project.test",
+						tfjsonpath.New("billing_reference"),
+						knownvalue.StringExact("REF-1234"),
 					),
 				},
 			},
@@ -133,5 +144,6 @@ const testAccProjectResourceUpdateConfig = `
 resource "switchcloud_project" "test" {
   name = "Test Project"
   description = "This is a test project description."
+  billing_reference = "REF-1234"
 }
 `

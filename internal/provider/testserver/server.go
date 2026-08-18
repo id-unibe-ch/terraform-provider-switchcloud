@@ -20,14 +20,15 @@ import (
 
 // Project mirrors the SwitchCloud API project structure.
 type Project struct {
-	Id             string  `json:"id"`
-	Name           string  `json:"name"`
-	Description    *string `json:"description,omitempty"`
-	OrganisationId string  `json:"organisation_id"`
-	Archived       bool    `json:"archived"`
-	ArchivedAt     string  `json:"archived_at,omitempty"`
-	CreatedAt      string  `json:"created_at"`
-	UpdatedAt      string  `json:"updated_at"`
+	Id                       string  `json:"id"`
+	Name                     string  `json:"name"`
+	Description              *string `json:"description,omitempty"`
+	CustomerBillingReference *string `json:"customer_billing_reference,omitempty"`
+	TenantId                 string  `json:"tenant_id"`
+	Archived                 bool    `json:"archived"`
+	ArchivedAt               string  `json:"archived_at,omitempty"`
+	CreatedAt                string  `json:"created_at"`
+	UpdatedAt                string  `json:"updated_at"`
 }
 
 // Member mirrors the SwitchCloud API project member structure.
@@ -88,7 +89,8 @@ func New() *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/projects", s.handlePostProject)
 	mux.HandleFunc("GET /api/v1/projects/{id}", s.handleGetProject)
-	mux.HandleFunc("POST /api/v1/projects/{id}/archive", s.handleArchiveProject)
+	mux.HandleFunc("PATCH /api/v1/projects/{id}", s.handlePatchProject)
+	mux.HandleFunc("PATCH /api/v1/projects/{id}/archive", s.handleArchiveProject)
 	mux.HandleFunc("POST /api/v1/projects/{project_id}/members", s.handlePostMember)
 	mux.HandleFunc("GET /api/v1/projects/{project_id}/members/{id}", s.handleGetMember)
 	mux.HandleFunc("DELETE /api/v1/projects/{project_id}/members/{id}", s.handleDeleteMember)
@@ -115,10 +117,10 @@ func (s *Server) Reset() {
 }
 
 // SeedProject pre-populates the server with a known project.
-// If the project's OrganisationId is empty it is set to the server's org ID.
+// If the project's TenantId is empty it is set to the server's org ID.
 func (s *Server) SeedProject(p Project) *Server {
-	if p.OrganisationId == "" {
-		p.OrganisationId = s.orgID
+	if p.TenantId == "" {
+		p.TenantId = s.orgID
 	}
 	if p.CreatedAt == "" {
 		p.CreatedAt = time.Now().Format(time.RFC3339)
@@ -213,8 +215,11 @@ func matchPattern(pattern, path string) bool {
 
 func (s *Server) handlePostProject(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description,omitempty"`
+		Project struct {
+			Name                     string  `json:"name"`
+			Description              *string `json:"description,omitempty"`
+			CustomerBillingReference *string `json:"customer_billing_reference,omitempty"`
+		} `json:"project"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -222,15 +227,14 @@ func (s *Server) handlePostProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := Project{
-		Id:             generateUUID(),
-		Name:           req.Name,
-		OrganisationId: s.orgID,
-		Archived:       false,
-		CreatedAt:      time.Now().Format(time.RFC3339),
-		UpdatedAt:      time.Now().Format(time.RFC3339),
-	}
-	if req.Description != "" {
-		p.Description = &req.Description
+		Id:                       generateUUID(),
+		Name:                     req.Project.Name,
+		Description:              req.Project.Description,
+		CustomerBillingReference: req.Project.CustomerBillingReference,
+		TenantId:                 s.orgID,
+		Archived:                 false,
+		CreatedAt:                time.Now().Format(time.RFC3339),
+		UpdatedAt:                time.Now().Format(time.RFC3339),
 	}
 
 	s.mu.Lock()
@@ -253,6 +257,42 @@ func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"project not found"}`, http.StatusNotFound)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(p)
+}
+
+func (s *Server) handlePatchProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	var req struct {
+		Project struct {
+			Name                     string  `json:"name"`
+			Description              *string `json:"description,omitempty"`
+			CustomerBillingReference *string `json:"customer_billing_reference,omitempty"`
+		} `json:"project"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.mu.Lock()
+	p, ok := s.projects[id]
+	if !ok {
+		s.mu.Unlock()
+		http.Error(w, `{"error":"project not found"}`, http.StatusNotFound)
+		return
+	}
+
+	if req.Project.Name != "" {
+		p.Name = req.Project.Name
+	}
+	p.Description = req.Project.Description
+	p.CustomerBillingReference = req.Project.CustomerBillingReference
+	p.UpdatedAt = time.Now().Format(time.RFC3339)
+	s.projects[id] = p
+	s.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(p)

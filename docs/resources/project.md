@@ -14,8 +14,9 @@ A project in the Switchcloud platform.
 
 ```terraform
 resource "switchcloud_project" "example" {
-  name        = "my-project"
-  description = "An example project created via Terraform"
+  name              = "my-project"
+  description       = "An example project created via Terraform"
+  billing_reference = "REF-1234"
 }
 ```
 
@@ -28,6 +29,7 @@ resource "switchcloud_project" "example" {
 
 ### Optional
 
+- `billing_reference` (String) Customer billing reference for the project
 - `description` (String) Project description
 
 ### Read-Only
@@ -36,7 +38,7 @@ resource "switchcloud_project" "example" {
 - `archived_at` (String) When the project was archived
 - `created_at` (String) When the project was created
 - `id` (String) Project identifier
-- `organisation_id` (String) Organisation ID that owns this project
+- `tenant_id` (String) Tenant ID that owns this project
 - `updated_at` (String) When the project was last updated
 
 ## Import
