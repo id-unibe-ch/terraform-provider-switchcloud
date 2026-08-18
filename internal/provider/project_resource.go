@@ -37,38 +37,42 @@ type ProjectResource struct {
 
 // ProjectResourceModel describes the resource data model.
 type ProjectResourceModel struct {
-	Id             types.String `tfsdk:"id"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	OrganisationId types.String `tfsdk:"organisation_id"`
-	Archived       types.Bool   `tfsdk:"archived"`
-	ArchivedAt     types.String `tfsdk:"archived_at"`
-	CreatedAt      types.String `tfsdk:"created_at"`
-	UpdatedAt      types.String `tfsdk:"updated_at"`
+	Id               types.String `tfsdk:"id"`
+	Name             types.String `tfsdk:"name"`
+	Description      types.String `tfsdk:"description"`
+	BillingReference types.String `tfsdk:"billing_reference"`
+	TenantId         types.String `tfsdk:"tenant_id"`
+	Archived         types.Bool   `tfsdk:"archived"`
+	ArchivedAt       types.String `tfsdk:"archived_at"`
+	CreatedAt        types.String `tfsdk:"created_at"`
+	UpdatedAt        types.String `tfsdk:"updated_at"`
 }
 
 // Project represents the API response structure.
 type Project struct {
-	Id             string  `json:"id"`
-	Name           string  `json:"name"`
-	Description    *string `json:"description,omitempty"`
-	OrganisationId string  `json:"organisation_id"`
-	Archived       bool    `json:"archived"`
-	ArchivedAt     string  `json:"archived_at,omitempty"`
-	CreatedAt      string  `json:"created_at"`
-	UpdatedAt      string  `json:"updated_at"`
+	Id                       string  `json:"id"`
+	Name                     string  `json:"name"`
+	Description              *string `json:"description,omitempty"`
+	CustomerBillingReference *string `json:"customer_billing_reference,omitempty"`
+	TenantId                 string  `json:"tenant_id"`
+	Archived                 bool    `json:"archived"`
+	ArchivedAt               string  `json:"archived_at,omitempty"`
+	CreatedAt                string  `json:"created_at"`
+	UpdatedAt                string  `json:"updated_at"`
 }
 
-// ProjectCreateRequest represents the request body for creating a project.
-type ProjectCreateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+// ProjectRequestFields represents the mutable project fields accepted by the
+// create and update endpoints.
+type ProjectRequestFields struct {
+	Name                     string  `json:"name,omitempty"`
+	Description              *string `json:"description,omitempty"`
+	CustomerBillingReference *string `json:"customer_billing_reference,omitempty"`
 }
 
-// ProjectUpdateRequest represents the request body for updating a project.
-type ProjectUpdateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+// ProjectRequestBody is the wrapped request body expected by the
+// create/update project endpoints, e.g. {"project": {...}}.
+type ProjectRequestBody struct {
+	Project ProjectRequestFields `json:"project"`
 }
 
 func (r *ProjectResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -98,12 +102,13 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Project description",
 				Optional:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
-			"organisation_id": schema.StringAttribute{
-				MarkdownDescription: "Organisation ID that owns this project",
+			"billing_reference": schema.StringAttribute{
+				MarkdownDescription: "Customer billing reference for the project",
+				Optional:            true,
+			},
+			"tenant_id": schema.StringAttribute{
+				MarkdownDescription: "Tenant ID that owns this project",
 				Computed:            true,
 			},
 			"archived": schema.BoolAttribute{
@@ -163,6 +168,39 @@ func (r *ProjectResource) Configure(ctx context.Context, req resource.ConfigureR
 	r.endpoint = endpoint
 }
 
+// projectRequestFieldsFromModel builds the mutable project fields sent to
+// the create/update endpoints from the Terraform model.
+func projectRequestFieldsFromModel(data ProjectResourceModel) ProjectRequestFields {
+	fields := ProjectRequestFields{
+		Name: data.Name.ValueString(),
+	}
+
+	if !data.Description.IsNull() {
+		description := data.Description.ValueString()
+		fields.Description = &description
+	}
+
+	if !data.BillingReference.IsNull() {
+		billingReference := data.BillingReference.ValueString()
+		fields.CustomerBillingReference = &billingReference
+	}
+
+	return fields
+}
+
+// applyProjectToModel copies the API response fields into the Terraform model.
+func applyProjectToModel(data *ProjectResourceModel, project Project) {
+	data.Id = types.StringValue(project.Id)
+	data.Name = types.StringValue(project.Name)
+	data.Description = types.StringPointerValue(project.Description)
+	data.BillingReference = types.StringPointerValue(project.CustomerBillingReference)
+	data.TenantId = types.StringValue(project.TenantId)
+	data.Archived = types.BoolValue(project.Archived)
+	data.ArchivedAt = types.StringValue(project.ArchivedAt)
+	data.CreatedAt = types.StringValue(project.CreatedAt)
+	data.UpdatedAt = types.StringValue(project.UpdatedAt)
+}
+
 func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data ProjectResourceModel
 
@@ -174,13 +212,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Create API request body
-	createRequest := ProjectCreateRequest{
-		Name: data.Name.ValueString(),
-	}
-
-	if !data.Description.IsNull() {
-		createRequest.Description = data.Description.ValueString()
-	}
+	createRequest := ProjectRequestBody{Project: projectRequestFieldsFromModel(data)}
 
 	// Marshal request body
 	jsonBody, err := json.Marshal(createRequest)
@@ -228,14 +260,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Update model with response data
-	data.Id = types.StringValue(project.Id)
-	data.Name = types.StringValue(project.Name)
-	data.Description = types.StringPointerValue(project.Description)
-	data.OrganisationId = types.StringValue(project.OrganisationId)
-	data.Archived = types.BoolValue(project.Archived)
-	data.ArchivedAt = types.StringValue(project.ArchivedAt)
-	data.CreatedAt = types.StringValue(project.CreatedAt)
-	data.UpdatedAt = types.StringValue(project.UpdatedAt)
+	applyProjectToModel(&data, project)
 
 	// Write logs using the tflog package
 	tflog.Trace(ctx, "created a project resource")
@@ -298,21 +323,78 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Update model with response data
-	data.Id = types.StringValue(project.Id)
-	data.Name = types.StringValue(project.Name)
-	data.Description = types.StringPointerValue(project.Description)
-	data.OrganisationId = types.StringValue(project.OrganisationId)
-	data.Archived = types.BoolValue(project.Archived)
-	data.ArchivedAt = types.StringValue(project.ArchivedAt)
-	data.CreatedAt = types.StringValue(project.CreatedAt)
-	data.UpdatedAt = types.StringValue(project.UpdatedAt)
+	applyProjectToModel(&data, project)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("API Error", "Unable to update project, method is not implemented on server")
+	var data ProjectResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Build API request body
+	updateRequest := ProjectRequestBody{Project: projectRequestFieldsFromModel(data)}
+
+	// Marshal request body
+	jsonBody, err := json.Marshal(updateRequest)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to marshal update request, got error: %s", err))
+		return
+	}
+
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", strings.TrimSuffix(r.endpoint, "/")+"/api/v1/projects/"+data.Id.ValueString(), bytes.NewBuffer(jsonBody))
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create update request, got error: %s", err))
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
+
+	// Make API call
+	httpResp, err := r.client.Do(httpReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update project, got error: %s", err))
+		return
+	}
+	defer httpResp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read response body, got error: %s", err))
+		return
+	}
+
+	// Check response status
+	if httpResp.StatusCode != http.StatusOK {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("API returned status %d: %s", httpResp.StatusCode, string(body)))
+		return
+	}
+
+	// Parse response
+	var project Project
+	if err := json.Unmarshal(body, &project); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to parse response, got error: %s", err))
+		return
+	}
+
+	// Update model with response data
+	applyProjectToModel(&data, project)
+
+	// Write logs using the tflog package
+	tflog.Trace(ctx, "updated a project resource")
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -326,7 +408,7 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	// Create HTTP request
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", strings.TrimSuffix(r.endpoint, "/")+"/api/v1/projects/"+data.Id.ValueString()+"/archive", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", strings.TrimSuffix(r.endpoint, "/")+"/api/v1/projects/"+data.Id.ValueString()+"/archive", nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create archive request, got error: %s", err))
 		return

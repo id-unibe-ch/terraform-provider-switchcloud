@@ -32,14 +32,15 @@ type ProjectDataSource struct {
 
 // ProjectDataSourceModel describes the data source data model.
 type ProjectDataSourceModel struct {
-	Id             types.String `tfsdk:"id"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	OrganisationId types.String `tfsdk:"organisation_id"`
-	Archived       types.Bool   `tfsdk:"archived"`
-	ArchivedAt     types.String `tfsdk:"archived_at"`
-	CreatedAt      types.String `tfsdk:"created_at"`
-	UpdatedAt      types.String `tfsdk:"updated_at"`
+	Id               types.String `tfsdk:"id"`
+	Name             types.String `tfsdk:"name"`
+	Description      types.String `tfsdk:"description"`
+	BillingReference types.String `tfsdk:"billing_reference"`
+	TenantId         types.String `tfsdk:"tenant_id"`
+	Archived         types.Bool   `tfsdk:"archived"`
+	ArchivedAt       types.String `tfsdk:"archived_at"`
+	CreatedAt        types.String `tfsdk:"created_at"`
+	UpdatedAt        types.String `tfsdk:"updated_at"`
 }
 
 func (d *ProjectDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -64,8 +65,12 @@ func (d *ProjectDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				MarkdownDescription: "Project description",
 				Computed:            true,
 			},
-			"organisation_id": schema.StringAttribute{
-				MarkdownDescription: "Organisation ID that owns this project",
+			"billing_reference": schema.StringAttribute{
+				MarkdownDescription: "Customer billing reference for the project",
+				Computed:            true,
+			},
+			"tenant_id": schema.StringAttribute{
+				MarkdownDescription: "Tenant ID that owns this project",
 				Computed:            true,
 			},
 			"archived": schema.BoolAttribute{
@@ -176,7 +181,8 @@ func (d *ProjectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	data.Id = types.StringValue(project.Id)
 	data.Name = types.StringValue(project.Name)
 	data.Description = types.StringPointerValue(project.Description)
-	data.OrganisationId = types.StringValue(project.OrganisationId)
+	data.BillingReference = types.StringPointerValue(project.CustomerBillingReference)
+	data.TenantId = types.StringValue(project.TenantId)
 	data.Archived = types.BoolValue(project.Archived)
 	data.ArchivedAt = types.StringValue(project.ArchivedAt)
 	data.CreatedAt = types.StringValue(project.CreatedAt)
